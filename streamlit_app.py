@@ -17,9 +17,6 @@ st.markdown("**Multi-Modal NLP + GNN Framework** — Real-time fraud detection w
 # Sidebar
 with st.sidebar:
     st.header("⚙️ Settings")
-    explain = st.checkbox("Enable Explainability (experimental)", value=False)
-    if explain:
-        st.warning("⚠️ Explainability is slow and may fail with trivial graphs. Use only with real transaction data.")
     st.markdown("---")
     st.markdown("### About")
     st.info(
@@ -42,7 +39,6 @@ with col1:
         "Enter SMS, email, or payment note:",
         value=st.session_state.message,
         height=120,
-        key="message_input",
     )
 
 with col2:
@@ -63,7 +59,7 @@ if st.button("🔍 Analyze Message", type="primary", use_container_width=True):
             "nodes": [{"node_id": 0, "features": [amount, hour, day, int(is_new)]}],
             "edges": [],
             "target_node": 0,
-            "explain": explain,
+            "explain": False,
         }
         
         try:
@@ -116,23 +112,6 @@ if st.button("🔍 Analyze Message", type="primary", use_container_width=True):
                     with st.expander(f"Match {i}: {match['label']} (distance: {match['distance']:.2f})"):
                         st.text(match["text"])
             
-            # Explainability
-            if explain and result.get("explanation"):
-                st.markdown("---")
-                st.subheader("📈 Explainability")
-                exp = result["explanation"]
-                
-                if exp.get("shap_summary"):
-                    shap = exp["shap_summary"]
-                    col_s1, col_s2 = st.columns(2)
-                    with col_s1:
-                        st.metric("NLP Contribution", f"{shap['nlp_total_contribution']:.2f}")
-                    with col_s2:
-                        st.metric("GNN Contribution", f"{shap['gnn_total_contribution']:.2f}")
-                
-                if exp.get("report"):
-                    st.info(exp["report"])
-            
             # Raw JSON (collapsible)
             with st.expander("🔧 Raw API Response"):
                 st.json(result)
@@ -157,4 +136,3 @@ for col, (name, text) in zip(cols, examples):
     with col:
         if st.button(name, use_container_width=True):
             st.session_state.message = text
-            st.rerun()

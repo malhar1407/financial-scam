@@ -1,0 +1,77 @@
+\section{Appendices}
+
+\subsection{Code Repository}
+
+Complete source code available at: \url{https://github.com/malhar1407/financial-scam}
+
+Repository structure:
+\begin{lstlisting}
+scam_detection/
+├── config.py                    # Configuration
+├── requirements.txt             # Dependencies
+├── data/                        # Data pipelines
+├── models/                      # Model implementations
+├── rag/                         # RAG module
+├── explainability/              # Explainability tools
+├── api/                         # FastAPI backend
+└── tests/                       # Unit tests
+streamlit_app.py                 # UI application
+\end{lstlisting}
+
+\subsection{Training Commands}
+
+\begin{lstlisting}[language=bash]
+# 1. Download and prepare text data
+python -m scam_detection.data.text_pipeline
+
+# 2. Train NLP classifier
+python -m scam_detection.models.train_nlp
+
+# 3. Train GNN (requires Elliptic dataset)
+python -m scam_detection.models.train_gnn
+
+# 4. Train fusion model
+python -m scam_detection.models.train_fusion
+
+# 5. Start API server
+uvicorn scam_detection.api.app:app --port 8000
+
+# 6. Launch UI
+streamlit run streamlit_app.py
+\end{lstlisting}
+
+\subsection{Sample API Request}
+
+\begin{lstlisting}[language=bash]
+curl -X POST http://localhost:8000/predict \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "Your SBI account will be blocked. Update KYC now.",
+    "nodes": [{"node_id": 0, "features": [49999.0, 2.0, 5.0, 1.0]}],
+    "edges": [],
+    "target_node": 0,
+    "explain": false
+  }'
+\end{lstlisting}
+
+\subsection{Hardware Specifications}
+
+Development and testing performed on:
+\begin{itemize}
+    \item \textbf{CPU:} Apple M1 (x86\_64 emulation)
+    \item \textbf{RAM:} 16 GB
+    \item \textbf{OS:} macOS
+    \item \textbf{Python:} 3.12.2
+\end{itemize}
+
+\subsection{Ethical Considerations}
+
+This system processes sensitive financial data. Deployment must ensure:
+\begin{enumerate}
+    \item Data encryption in transit and at rest
+    \item Compliance with GDPR, RBI guidelines, and local regulations
+    \item User consent for message analysis
+    \item Audit trails for all predictions
+    \item Human oversight for high-stakes decisions
+    \item Regular bias and fairness audits
+\end{enumerate}

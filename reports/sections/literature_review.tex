@@ -1,0 +1,73 @@
+\section{Literature Review}
+
+\subsection{Traditional Fraud Detection Methods}
+
+Early fraud detection systems relied on rule-based approaches and statistical anomaly detection. Bolton and Hand \cite{bolton2002statistical} surveyed statistical methods including logistic regression, decision trees, and neural networks for credit card fraud detection. While effective for known patterns, these methods struggled with novel attack vectors and required extensive feature engineering.
+
+Phua et al. \cite{phua2010fraud} proposed a comprehensive framework for fraud detection in telecommunications, demonstrating that ensemble methods combining multiple weak classifiers could improve detection rates. However, their approach required domain-specific feature extraction and could not generalize across fraud types.
+
+\subsection{Natural Language Processing for Fraud Detection}
+
+The application of NLP to fraud detection gained prominence with the rise of phishing and social engineering attacks. Fette et al. \cite{fette2007learning} developed PILFER, a machine learning-based phishing email classifier using lexical and structural features. Their system achieved 96\% accuracy but relied on hand-crafted features.
+
+Devlin et al. \cite{devlin2019bert} introduced BERT (Bidirectional Encoder Representations from Transformers), revolutionizing NLP through pre-trained contextual embeddings. Subsequent work by Sanh et al. \cite{sanh2019distilbert} on DistilBERT demonstrated that knowledge distillation could reduce model size by 40\% while retaining 97\% of BERT's performance, making it suitable for production deployments.
+
+Recent studies have applied transformer models to fraud detection. Hiransha et al. \cite{hiransha2021deep} used BERT for SMS spam classification, achieving 94\% accuracy on the UCI SMS Spam dataset. However, their approach did not incorporate transaction context or provide explainability.
+
+\subsection{Graph Neural Networks for Financial Fraud}
+
+Graph-based approaches model financial systems as networks where nodes represent accounts and edges represent transactions. Kipf and Welling \cite{kipf2017semi} introduced Graph Convolutional Networks (GCN), enabling deep learning on graph-structured data.
+
+Weber et al. \cite{weber2019anti} released the Elliptic Bitcoin dataset, containing 203,769 Bitcoin transactions with fraud labels. They demonstrated that GCNs could detect illicit transactions with 94\% accuracy by leveraging network structure. However, their model suffered from class imbalance (only 2\% fraud) and did not incorporate textual information.
+
+Veličković et al. \cite{velickovic2018graph} proposed Graph Attention Networks (GAT), which learn importance weights for neighboring nodes. Liu et al. \cite{liu2021pick} applied GAT to credit card fraud detection, showing that attention mechanisms improve interpretability by highlighting suspicious transaction patterns.
+
+\subsection{Multi-Modal Learning}
+
+Multi-modal learning combines information from heterogeneous sources. Baltrusaitis et al. \cite{baltrusaitis2019multimodal} surveyed fusion strategies, categorizing them as early fusion (feature-level), late fusion (decision-level), and hybrid approaches. Late fusion has proven effective when modalities have different optimal architectures.
+
+In fraud detection, Pourhabibi et al. \cite{pourhabibi2020fraud} combined transaction features with user behavior logs using a two-stream neural network. Their late fusion approach achieved 91\% F1-score on credit card fraud. However, they did not incorporate textual data or provide explainability.
+
+\subsection{Explainable AI in Fraud Detection}
+
+Regulatory requirements (e.g., GDPR, RBI guidelines) mandate explainability in automated decision systems. Lundberg and Lee \cite{lundberg2017unified} introduced SHAP (SHapley Additive exPlanations), a unified framework for interpreting model predictions based on game theory. SHAP has been successfully applied to fraud detection by Bhattacharyya et al. \cite{bhattacharyya2011data}.
+
+Attention mechanisms in neural networks provide inherent interpretability. Bahdanau et al. \cite{bahdanau2015neural} showed that attention weights reveal which input elements influenced predictions.
+
+\subsection{Large Language Models and RAG}
+
+Recent advances in Large Language Models (LLMs) have enabled structured information extraction from unstructured text. Brown et al. \cite{brown2020language} demonstrated that GPT-3 could perform few-shot learning on diverse NLP tasks. Touvron et al. \cite{touvron2023llama} released Llama 2, an open-source LLM suitable for local deployment.
+
+Retrieval-Augmented Generation (RAG), introduced by Lewis et al. \cite{lewis2020retrieval}, combines neural retrieval with generation to incorporate external knowledge without retraining. Gao et al. \cite{gao2023retrieval} applied RAG to cybersecurity threat detection, showing that vector databases of known attack patterns improved zero-shot detection.
+
+\subsection{Research Gaps}
+
+Despite significant progress, existing work has limitations:
+
+\begin{itemize}
+    \item \textbf{Isolated Modalities:} Most systems analyze text or graphs separately, missing cross-modal correlations.
+    \item \textbf{Limited Explainability:} Few systems provide multi-level explanations suitable for regulatory compliance.
+    \item \textbf{Static Models:} Retraining is required to adapt to new fraud patterns.
+    \item \textbf{Benchmark Limitations:} No standard dataset combines textual messages with transaction graphs.
+    \item \textbf{Production Gaps:} Academic systems often lack real-time inference capabilities.
+\end{itemize}
+
+This project addresses these gaps by proposing a unified framework that integrates NLP, GNN, LLM-based intent extraction, and RAG-powered adaptability, with comprehensive explainability and production-ready deployment.
+
+\subsection{Deep Learning Fundamentals}
+
+The success of deep learning in various domains has been driven by several key innovations. He et al. \cite{he2016deep} introduced residual connections in ResNet, enabling training of very deep networks. Vaswani et al. \cite{vaswani2017attention} proposed the Transformer architecture, which revolutionized sequence modeling through self-attention mechanisms.
+
+Optimization techniques have also evolved significantly. Kingma and Ba \cite{kingma2014adam} introduced Adam optimizer, which adapts learning rates for each parameter. Srivastava et al. \cite{srivastava2014dropout} demonstrated that dropout regularization prevents overfitting in neural networks. Ioffe and Szegedy \cite{ioffe2015batch} proposed batch normalization to stabilize training.
+
+\subsection{Transfer Learning and Pre-training}
+
+Transfer learning has become a cornerstone of modern NLP and computer vision. Dosovitskiy et al. \cite{dosovitskiy2020image} showed that Vision Transformers (ViT) pre-trained on large datasets achieve state-of-the-art performance on image classification. Radford et al. \cite{radford2021learning} demonstrated that CLIP learns transferable visual representations from natural language supervision.
+
+Chen et al. \cite{chen2020simple} introduced contrastive learning frameworks that learn representations by maximizing agreement between differently augmented views of the same data. These techniques have inspired similar approaches in fraud detection, where labeled data is scarce.
+
+\subsection{Regulatory and Industry Context}
+
+Financial fraud detection operates within strict regulatory frameworks. The European Central Bank \cite{ecb2022payment} reports that payment fraud losses exceeded €1.8 billion in 2022 across the EU. The Financial Crimes Enforcement Network \cite{fincen2023sar} documented a 42\% increase in Suspicious Activity Reports (SARs) related to digital payment fraud in 2023.
+
+Regulatory requirements such as GDPR Article 22 mandate that automated decision-making systems provide meaningful explanations. The Reserve Bank of India \cite{rbi2023} has issued guidelines requiring financial institutions to implement AI-based fraud detection with human oversight and audit trails.

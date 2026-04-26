@@ -5,7 +5,7 @@ from typing import List
 class Config:
     # NLP / LLM
     embed_model: str = "distilbert-base-uncased"
-    llm_model: str = "mistral"          # Ollama model name
+    llm_model: str = "qwen2.5-coder:1.5b"      # Ollama model name (smallest available)
     ollama_base_url: str = "http://localhost:11434"
     max_seq_len: int = 128
 

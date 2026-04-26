@@ -1,0 +1,92 @@
+[
+  {
+    "category": "kyc_scam",
+    "messages": [
+      "Your SBI account will be blocked. Update KYC now.",
+      "URGENT: Your HDFC KYC has expired. Click link to verify immediately.",
+      "Dear customer, your Axis Bank KYC is pending. Complete within 24 hours.",
+      "ICICI Bank: Your account is suspended due to incomplete KYC. Update now.",
+      "PNB Alert: KYC verification required. Account will be frozen tomorrow.",
+      "Your Bank of Baroda KYC expires today. Verify to avoid account closure.",
+      "Canara Bank: Immediate KYC update required. Click here to continue.",
+      "Union Bank: Your KYC documents are invalid. Re-submit within 2 hours.",
+      "Indian Bank: Account blocked due to KYC non-compliance. Update immediately.",
+      "Central Bank: Final notice for KYC completion. Act now to save account."
+    ]
+  },
+  {
+    "category": "phishing",
+    "messages": [
+      "Dear customer, your SBI account is suspended. Click link to verify.",
+      "Your HDFC debit card is blocked. Verify PIN at secure.hdfc-verify.com",
+      "ICICI Alert: Suspicious login detected. Confirm identity immediately.",
+      "Axis Bank: Your net banking is compromised. Reset password now.",
+      "PNB Security: Unauthorized access attempt. Verify account details.",
+      "Your PayTM wallet is locked. Enter OTP to unlock: paytm-secure.net",
+      "Google Pay: Account verification needed. Click to authenticate.",
+      "PhonePe Alert: Your UPI PIN is compromised. Reset immediately.",
+      "Amazon Pay: Suspicious activity detected. Verify account now.",
+      "BHIM UPI: Your payment method needs verification. Click here."
+    ]
+  },
+  {
+    "category": "lottery_scam",
+    "messages": [
+      "Congratulations! You have won a lottery of Rs 50 lakh. Send OTP to claim.",
+      "WINNER! You've won Rs 25,00,000 in KBC lottery. Pay Rs 5000 processing fee.",
+      "Lucky Draw Winner: Rs 10 lakh prize awaits. Send bank details to claim.",
+      "Coca-Cola Lottery: You won Rs 15,50,000. Pay tax of Rs 8000 first.",
+      "Airtel Lottery Winner: Rs 7,75,000 prize. Provide Aadhaar to process.",
+      "Reliance Jio Lucky Draw: Won Rs 12 lakh. Send Rs 2000 for documentation.",
+      "Samsung Galaxy Lottery: You won phone + Rs 50,000. Pay courier charges.",
+      "Flipkart Anniversary: Won Rs 3,25,000. Complete verification process.",
+      "Big Bazaar Bumper: Rs 8,80,000 prize won. Send processing fee Rs 4500.",
+      "Tata Motors Lottery: Won Nexon car + Rs 2 lakh. Pay registration fee."
+    ]
+  },
+  {
+    "category": "urgency_scam",
+    "messages": [
+      "URGENT: Unauthorized login detected. Call 9XXXXXXXXX immediately.",
+      "ALERT: Your account will be closed in 2 hours. Act now!",
+      "FINAL NOTICE: Pay Rs 15,000 penalty within 1 hour or face legal action.",
+      "EMERGENCY: Your Aadhaar is being misused. Call helpline now.",
+      "CRITICAL: Bank account hacked. Transfer funds to safe account immediately.",
+      "LAST WARNING: Income tax notice. Pay Rs 25,000 fine within 30 minutes.",
+      "URGENT ACTION REQUIRED: Your PAN card is suspended. Verify now.",
+      "IMMEDIATE RESPONSE NEEDED: Electricity will be cut in 1 hour. Pay bill.",
+      "TIME SENSITIVE: Your insurance claim expires today. Submit documents now.",
+      "BREAKING: Your mobile number will be blocked. Recharge within 2 hours."
+    ]
+  },
+  {
+    "category": "impersonation",
+    "messages": [
+      "RBI Notice: Your bank account shows suspicious activity. Report immediately.",
+      "Income Tax Department: Refund of Rs 15,420 approved. Submit bank details.",
+      "SEBI Alert: Your trading account is under investigation. Contact us.",
+      "Telecom Ministry: Your mobile connection will be terminated. Verify Aadhaar.",
+      "Electricity Board: Outstanding bill of Rs 8,500. Pay to avoid disconnection.",
+      "LPG Subsidy: Rs 2,400 pending in your account. Provide bank details.",
+      "EPF Office: Your PF amount Rs 1,25,000 is ready for withdrawal.",
+      "Passport Office: Your application is rejected. Pay Rs 5,000 to reprocess.",
+      "Cyber Crime Cell: Your account is used for money laundering. Cooperate now.",
+      "Supreme Court: Legal notice issued against you. Pay Rs 50,000 fine."
+    ]
+  },
+  {
+    "category": "benign",
+    "messages": [
+      "Your order #12345 has been shipped and will arrive tomorrow.",
+      "Meeting scheduled for 3 PM today in conference room A.",
+      "Happy birthday! Hope you have a wonderful day ahead.",
+      "Reminder: Your doctor appointment is at 10 AM on Monday.",
+      "Thank you for your payment. Your subscription is now active.",
+      "Weather update: Heavy rain expected this evening. Carry umbrella.",
+      "Your flight AI-101 is on time. Boarding starts at 2:30 PM.",
+      "Library book return reminder: Due date is tomorrow.",
+      "Congratulations on your promotion! Well deserved success.",
+      "Your grocery delivery will arrive between 4-6 PM today."
+    ]
+  }
+]

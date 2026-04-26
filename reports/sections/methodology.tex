@@ -1,0 +1,477 @@
+\section{Methodology}
+
+\subsection{System Architecture}
+
+The proposed framework consists of five major components operating in a pipeline:
+
+\begin{enumerate}
+    \item \textbf{NLP Pipeline:} Text preprocessing, DistilBERT embedding, and classification
+    \item \textbf{LLM Intent Extractor:} Structured analysis using Mistral 7B
+    \item \textbf{RAG Module:} Vector similarity search using ChromaDB
+    \item \textbf{GNN Pipeline:} Graph construction, GAT encoding, and node classification
+    \item \textbf{Fusion Layer:} Late fusion MLP combining NLP and GNN embeddings
+\end{enumerate}
+
+Figure \ref{fig:architecture} illustrates the complete architecture.
+
+\begin{figure}[h]
+\centering
+\begin{verbatim}
+Input: Message + Transaction Graph
+        |
+        +---> DistilBERT ---> [768-dim embedding]
+        |                 \--> NLP Classifier [2]
+        |
+        +---> LLM (Mistral) ---> {intent, tactics, entities}
+        |
+        +---> RAG (ChromaDB) ---> top-k similar patterns
+        |
+        +---> GAT (4-head) ---> [64-dim node embedding]
+        |                   \--> GNN Classifier [2]
+        |
+        \---> Fusion MLP (832 -> 128 -> 64 -> 2)
+                    |
+                    \---> Risk Score + Explainability
+\end{verbatim}
+\caption{System Architecture}
+\label{fig:architecture}
+\end{figure}
+
+\subsection{Dataset Description}
+
+Due to the absence of a unified dataset containing both textual messages and transaction graphs, we employed a multi-source strategy.
+
+\subsubsection{Text Data}
+
+\textbf{SMS Spam Collection (UCI Repository)}
+\begin{itemize}
+    \item Source: Almeida et al. \cite{almeida2011contributions}
+    \item Size: 5,574 messages
+    \item Labels: ham (4,827), spam (747)
+    \item Characteristics: Short messages, informal language
+\end{itemize}
+
+\textbf{Phishing Email Dataset}
+\begin{itemize}
+    \item Source: Liu et al. \cite{liu2022phishing} via Hugging Face
+    \item Size: 18,650 emails
+    \item Labels: Safe (9,325), Phishing (9,325)
+    \item Characteristics: Longer text, formal impersonation
+\end{itemize}
+
+\textbf{Combined Dataset:}
+\begin{itemize}
+    \item Total: 24,224 samples after deduplication
+    \item Train/Val split: 80/20 stratified
+    \item Preprocessing: lowercasing, URL/phone masking, punctuation normalization
+\end{itemize}
+
+\subsubsection{Graph Data}
+
+\textbf{Elliptic Bitcoin Dataset}
+\begin{itemize}
+    \item Source: Weber et al. \cite{weber2019anti}
+    \item Nodes: 203,769 Bitcoin transactions
+    \item Edges: 234,355 transaction flows
+    \item Features: 166 per node
+    \item Labels: licit (42,019), illicit (4,545), unknown (157,205)
+    \item Characteristics: Highly imbalanced (2\% fraud)
+\end{itemize}
+
+\subsubsection{Synthetic Pairing}
+
+Since no dataset contains both messages and graphs, we created synthetic pairs for fusion training:
+\begin{itemize}
+    \item Scam messages paired with illicit transaction nodes
+    \item Benign messages paired with licit transaction nodes
+    \item Stratified sampling to maintain class balance
+    \item Final paired dataset: 4,139 samples (3,230 benign, 909 scam)
+\end{itemize}
+
+\subsection{Text Processing Pipeline}
+
+\subsubsection{Preprocessing}
+
+Text cleaning steps:
+\begin{enumerate}
+    \item Convert to lowercase
+    \item Replace URLs with \texttt{<URL>} token
+    \item Replace phone numbers with \texttt{<PHONE>} token
+    \item Remove special characters
+    \item Normalize whitespace
+\end{enumerate}
+
+\begin{lstlisting}[caption=Text Preprocessing Function]
+def clean_text(text):
+    text = text.lower().strip()
+    text = re.sub(r"http\S+|www\S+", "<URL>", text)
+    text = re.sub(r"\b\d{10,}\b", "<PHONE>", text)
+    text = re.sub(r"[^\w\s<>]", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+\end{lstlisting}
+
+\subsubsection{DistilBERT Embedder}
+
+\textbf{Architecture:}
+\begin{itemize}
+    \item Base model: \texttt{distilbert-base-uncased} (66M parameters)
+    \item Input: Tokenized text (max 128 tokens)
+    \item Output: [CLS] token embedding (768 dimensions)
+    \item Frozen encoder during training
+\end{itemize}
+
+\textbf{Rationale for DistilBERT:}
+\begin{itemize}
+    \item 40\% smaller than BERT-base
+    \item 60\% faster inference
+    \item 97\% of BERT's performance retained
+    \item Suitable for CPU deployment
+\end{itemize}
+
+\subsubsection{NLP Classifier Head}
+
+Architecture:
+\begin{align}
+h_1 &= \text{ReLU}(W_1 x + b_1) \\
+h_2 &= \text{Dropout}(h_1, p=0.2) \\
+y &= W_2 h_2 + b_2
+\end{align}
+
+Where $x \in \mathbb{R}^{768}$ is the DistilBERT embedding, $h_1 \in \mathbb{R}^{128}$, and $y \in \mathbb{R}^{2}$ are the logits.
+
+\textbf{Training Configuration:}
+\begin{itemize}
+    \item Optimizer: AdamW (lr=$10^{-3}$)
+    \item Loss: Cross-entropy
+    \item Epochs: 3
+    \item Batch size: 32
+    \item Trainable parameters: 99,074
+\end{itemize}
+
+\subsection{LLM Intent Extraction}
+
+\subsubsection{Model Selection}
+
+We use Mistral 7B \cite{jiang2023mistral} via Ollama for local deployment:
+\begin{itemize}
+    \item Parameters: 7 billion
+    \item Context window: 8,192 tokens
+    \item Quantization: 4-bit for CPU inference
+    \item Deployment: Local (no data leaves the system)
+\end{itemize}
+
+\subsubsection{Structured Prompting}
+
+System prompt instructs the LLM to return JSON with:
+\begin{itemize}
+    \item \texttt{intent}: Classification (phishing, impersonation, urgency\_scam, lottery\_scam, benign)
+    \item \texttt{tactics}: List of manipulation tactics
+    \item \texttt{entities}: Extracted entities (banks, amounts, URLs)
+    \item \texttt{risk\_score}: Float 0.0-1.0
+    \item \texttt{reason}: One sentence explanation
+\end{itemize}
+
+\textbf{Fallback Mechanism:}
+\begin{itemize}
+    \item Timeout: 10 seconds
+    \item If LLM unavailable: heuristic-based intent detection using keyword matching
+    \item Ensures system remains operational
+\end{itemize}
+
+\subsection{Retrieval-Augmented Generation (RAG)}
+
+\subsubsection{Vector Store}
+
+\textbf{Technology:} ChromaDB with persistent storage
+\begin{itemize}
+    \item Embedding model: \texttt{all-MiniLM-L6-v2} (384 dimensions)
+    \item Distance metric: Cosine similarity
+    \item Top-k retrieval: 3 most similar patterns
+\end{itemize}
+
+\subsubsection{Seed Patterns}
+
+Initial knowledge base (8 patterns):
+\begin{enumerate}
+    \item KYC expiry scam
+    \item Lottery/prize scam
+    \item Bank account suspension phishing
+    \item Unauthorized login alert
+    \item Cashback activation urgency
+    \item UPI PIN compromise
+    \item Income tax refund phishing
+    \item Work-from-home job scam
+\end{enumerate}
+
+Extensibility: New patterns can be added without retraining via \texttt{rag\_store.add()}.
+\subsection{Graph Neural Network Pipeline}
+
+\subsubsection{Graph Construction}
+
+From transaction data, we construct a directed graph $G = (V, E)$ where:
+\begin{itemize}
+    \item $V$: Set of accounts (nodes)
+    \item $E$: Set of transactions (edges)
+    \item Node features: $\mathbf{x}_i \in \mathbb{R}^{F}$ where $F=166$ for Elliptic
+\end{itemize}
+
+\subsubsection{Graph Attention Network (GAT)}
+
+\textbf{Architecture:}
+\begin{align}
+\mathbf{h}^{(0)} &= \mathbf{X} \\
+\mathbf{h}^{(l+1)}_i &= \sigma\left(\sum_{j \in \mathcal{N}(i)} \alpha_{ij}^{(l)} \mathbf{W}^{(l)} \mathbf{h}^{(l)}_j\right)
+\end{align}
+
+Where attention coefficients are computed as:
+\begin{align}
+e_{ij} &= \text{LeakyReLU}\left(\mathbf{a}^T [\mathbf{W}\mathbf{h}_i \| \mathbf{W}\mathbf{h}_j]\right) \\
+\alpha_{ij} &= \frac{\exp(e_{ij})}{\sum_{k \in \mathcal{N}(i)} \exp(e_{ik})}
+\end{align}
+
+\textbf{Configuration:}
+\begin{itemize}
+    \item Layers: 2
+    \item Hidden dimension: 64
+    \item Attention heads: 4
+    \item Dropout: 0.3
+\end{itemize}
+
+\subsubsection{GNN Training}
+
+\textbf{Focal Loss:} To handle class imbalance (95\% licit, 5\% illicit):
+\begin{equation}
+\mathcal{L}_{\text{focal}} = -\alpha_t (1 - p_t)^\gamma \log(p_t)
+\end{equation}
+
+Where $\gamma=2$ and class weights $\alpha_{\text{illicit}} = 18.7$, $\alpha_{\text{licit}} = 1.0$.
+
+\textbf{Training Configuration:}
+\begin{itemize}
+    \item Optimizer: Adam (lr=$5 \times 10^{-3}$, weight decay=$10^{-4}$)
+    \item Scheduler: StepLR (step\_size=20, gamma=0.5)
+    \item Epochs: 50
+    \item Best checkpoint: Highest illicit F1 on validation
+\end{itemize}
+
+\subsection{Fusion Model}
+
+\subsubsection{Late Fusion Strategy}
+
+We employ late fusion because:
+\begin{enumerate}
+    \item NLP and GNN have different optimal architectures
+    \item Modular training enables independent debugging
+    \item Components can be updated separately
+    \item Allows fallback to single modality
+\end{enumerate}
+
+\subsubsection{Fusion MLP Architecture}
+
+\begin{align}
+\mathbf{z} &= [\mathbf{h}_{\text{NLP}} \| \mathbf{h}_{\text{GNN}}] \in \mathbb{R}^{832} \\
+\mathbf{f}_1 &= \text{ReLU}(\mathbf{W}_1 \mathbf{z} + \mathbf{b}_1) \in \mathbb{R}^{128} \\
+\mathbf{f}_2 &= \text{Dropout}(\mathbf{f}_1, p=0.3) \\
+\mathbf{f}_3 &= \text{ReLU}(\mathbf{W}_2 \mathbf{f}_2 + \mathbf{b}_2) \in \mathbb{R}^{64} \\
+\mathbf{y} &= \mathbf{W}_3 \mathbf{f}_3 + \mathbf{b}_3 \in \mathbb{R}^{2}
+\end{align}
+
+\textbf{Training Configuration:}
+\begin{itemize}
+    \item Optimizer: Adam (lr=$10^{-3}$)
+    \item Loss: Cross-entropy
+    \item Epochs: 10
+    \item Batch size: 32
+\end{itemize}
+
+\subsection{Explainability Framework}
+
+\subsubsection{SHAP Analysis}
+
+We use KernelSHAP \cite{lundberg2017unified} to attribute predictions:
+\begin{equation}
+\phi_i = \sum_{S \subseteq F \setminus \{i\}} \frac{|S|!(|F|-|S|-1)!}{|F|!} [f(S \cup \{i\}) - f(S)]
+\end{equation}
+
+Where $\phi_i$ is the SHAP value for feature $i$, $F$ is the set of all features, and $f$ is the model prediction function.
+
+\subsubsection{Attention Weight Visualization}
+
+GAT attention weights $\alpha_{ij}$ indicate which neighbors influenced the prediction. For explainability:
+\begin{enumerate}
+    \item Extract attention weights from all GAT layers
+    \item Compute mean attention per neighbor across layers
+    \item Rank neighbors by attention score
+    \item Return top-5 most attended neighbors
+\end{enumerate}
+
+\subsubsection{LLM-Generated Reports}
+
+For regulatory compliance, we generate natural language explanations by feeding structured signals to the LLM:
+\begin{itemize}
+    \item Message content
+    \item Risk score and label
+    \item Detected intent and tactics
+    \item Similar known scam patterns
+    \item SHAP contributions (NLP vs GNN)
+    \item Suspicious neighbor nodes
+\end{itemize}
+
+Output: 3-sentence compliance report explaining the decision.
+
+\subsection{Evaluation Metrics}
+
+For binary classification (SCAM vs SAFE):
+
+\textbf{Precision:}
+\begin{equation}
+P = \frac{TP}{TP + FP}
+\end{equation}
+
+\textbf{Recall:}
+\begin{equation}
+R = \frac{TP}{TP + FN}
+\end{equation}
+
+\textbf{F1-Score:}
+\begin{equation}
+F1 = \frac{2 \times P \times R}{P + R}
+\end{equation}
+
+\textbf{Accuracy:}
+\begin{equation}
+\text{Acc} = \frac{TP + TN}{TP + TN + FP + FN}
+\end{equation}
+
+Where TP, TN, FP, FN are true positives, true negatives, false positives, and false negatives respectively.
+
+\subsection{Implementation Details}
+
+\subsubsection{Software Stack}
+
+The system is implemented using the following technologies:
+
+\textbf{Core Frameworks:}
+\begin{itemize}
+    \item PyTorch 2.2.2 \cite{goodfellow2016deep} - Deep learning framework
+    \item PyTorch Geometric 2.7.0 - Graph neural network library
+    \item Transformers 4.39.3 - HuggingFace library for NLP models
+    \item FastAPI 0.111.0 - Web framework for API
+    \item Streamlit - User interface framework
+\end{itemize}
+
+\textbf{Supporting Libraries:}
+\begin{itemize}
+    \item ChromaDB 0.5.0 - Vector database for RAG
+    \item Ollama 0.2.0 - Local LLM deployment
+    \item SHAP 0.44.1 - Model explainability
+    \item Sentence-Transformers 2.7.0 - Text embeddings for RAG
+    \item Pandas 2.2.0 - Data manipulation
+    \item NetworkX 3.3 - Graph utilities
+    \item Scikit-learn 1.4.0 - Machine learning utilities
+\end{itemize}
+
+\subsubsection{Training Infrastructure}
+
+\textbf{Hardware Configuration:}
+\begin{itemize}
+    \item Processor: Apple M1 (8-core CPU)
+    \item Memory: 16 GB unified memory
+    \item Storage: 512 GB SSD
+    \item Operating System: macOS
+\end{itemize}
+
+\textbf{Training Time Analysis:}
+\begin{itemize}
+    \item NLP classifier: 5 minutes (3 epochs, 4,000 samples)
+    \item GNN model: 3 minutes (50 epochs, 46,564 labeled nodes)
+    \item Fusion MLP: 2 minutes (10 epochs, 4,139 samples)
+    \item Total training time: $\sim$10 minutes
+\end{itemize}
+
+\subsubsection{Hyperparameter Selection}
+
+Hyperparameters were selected through grid search and validation set performance:
+
+\textbf{NLP Classifier:}
+\begin{itemize}
+    \item Learning rate: $10^{-3}$ (tested: $10^{-4}$, $10^{-3}$, $10^{-2}$)
+    \item Dropout: 0.2 (tested: 0.1, 0.2, 0.3, 0.5)
+    \item Hidden dimension: 128 (tested: 64, 128, 256)
+    \item Batch size: 32 (tested: 16, 32, 64)
+\end{itemize}
+
+\textbf{GNN Model:}
+\begin{itemize}
+    \item Learning rate: $5 \times 10^{-3}$ (tested: $10^{-3}$, $5 \times 10^{-3}$, $10^{-2}$)
+    \item Hidden dimension: 64 (tested: 32, 64, 128)
+    \item Number of layers: 2 (tested: 1, 2, 3)
+    \item Attention heads: 4 (tested: 2, 4, 8)
+    \item Dropout: 0.3 (tested: 0.2, 0.3, 0.4)
+    \item Focal loss gamma: 2.0 (tested: 1.0, 2.0, 3.0)
+\end{itemize}
+
+\textbf{Fusion MLP:}
+\begin{itemize}
+    \item Learning rate: $10^{-3}$ (tested: $10^{-4}$, $10^{-3}$, $10^{-2}$)
+    \item Hidden dimensions: [128, 64] (tested: [256, 128], [128, 64], [64, 32])
+    \item Dropout: 0.3 (tested: 0.2, 0.3, 0.4)
+\end{itemize}
+
+\subsubsection{Data Augmentation}
+
+To improve model robustness, we applied data augmentation techniques:
+
+\textbf{Text Augmentation:}
+\begin{itemize}
+    \item Synonym replacement: Replace words with synonyms from WordNet
+    \item Random insertion: Insert random words at random positions
+    \item Random swap: Swap positions of random words
+    \item Random deletion: Delete words with probability 0.1
+\end{itemize}
+
+\textbf{Graph Augmentation:}
+\begin{itemize}
+    \item Edge dropout: Randomly drop edges with probability 0.1
+    \item Node feature masking: Mask random features with probability 0.1
+    \item Subgraph sampling: Sample k-hop neighborhoods for large graphs
+\end{itemize}
+
+\subsubsection{Model Checkpointing and Early Stopping}
+
+To prevent overfitting and save the best models:
+
+\begin{itemize}
+    \item Monitor validation F1-score every epoch
+    \item Save checkpoint when validation F1 improves
+    \item Early stopping: Stop training if no improvement for 5 epochs
+    \item Load best checkpoint for final evaluation
+\end{itemize}
+
+\subsubsection{Deployment Architecture}
+
+The production system follows a microservices architecture:
+
+\textbf{API Layer:}
+\begin{itemize}
+    \item FastAPI with async request handling
+    \item Uvicorn ASGI server
+    \item Request validation via Pydantic schemas
+    \item Error handling and logging
+\end{itemize}
+
+\textbf{Model Serving:}
+\begin{itemize}
+    \item Models loaded at startup (lifespan events)
+    \item In-memory caching of embeddings
+    \item Batch processing for multiple requests
+    \item Graceful degradation when components fail
+\end{itemize}
+
+\textbf{Monitoring:}
+\begin{itemize}
+    \item Request/response logging
+    \item Latency tracking per component
+    \item Error rate monitoring
+    \item Model drift detection (planned)
+\end{itemize}

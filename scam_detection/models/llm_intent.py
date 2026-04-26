@@ -26,7 +26,7 @@ def extract_intent(text: str) -> dict:
         resp = requests.post(
             f"{cfg.ollama_base_url}/api/chat",
             json=payload,
-            timeout=10,  # Fast timeout — if LLM is slow, skip it
+            timeout=30,  # Very long timeout for CPU inference
         )
         resp.raise_for_status()
         content = resp.json()["message"]["content"]
